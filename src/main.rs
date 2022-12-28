@@ -1,5 +1,7 @@
 use actix_web::{web, App, HttpServer};
 use sqlx::{mysql::{MySqlPool}, Pool, MySql};
+use actix_web::middleware::Logger;
+use env_logger::Env;
 use std::fs;
 
 mod controllers;
@@ -7,9 +9,12 @@ mod controllers;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let pool = setup_db().await;
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(web::Data::new(pool.clone()))
             .service(controllers::activities::activity_index)
             .service(controllers::activities::activity_find)
@@ -22,20 +27,20 @@ async fn main() -> std::io::Result<()> {
             .service(controllers::todos::todo_edit)
             .service(controllers::todos::todo_delete)
     })
-    .bind(("127.0.0.1", 8081))?
+    .bind(("127.0.0.1", 3030))?
     .run()
     .await
 }
 
 async fn setup_db() -> Pool<MySql> {
-    let host = env!("MYSQL_HOST");
-    let user = env!("MYSQL_USER");
-    let pass = env!("MYSQL_PASSWORD");
-    let db = env!("MYSQL_DBNAME");
+    let host = std::env::var("MYSQL_HOST").expect("No host");
+    let user = std::env::var("MYSQL_USER").expect("No user");
+    let pass = std::env::var("MYSQL_PASSWORD").expect("No pass");
+    let db = std::env::var("MYSQL_DBNAME").expect("No dbname");
 
-    let activities_query = fs::read_to_string("src/schema/activities.sql")
+    let activities_query = fs::read_to_string("/usr/local/bin/schema/activities.sql")
         .expect("File Not Found");
-    let todos_query = fs::read_to_string("src/schema/todos.sql")
+    let todos_query = fs::read_to_string("/usr/local/bin/schema/todos.sql")
         .expect("File Not Found");
 
     let pool = MySqlPool::connect(

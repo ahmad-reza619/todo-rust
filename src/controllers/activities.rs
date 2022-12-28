@@ -29,6 +29,7 @@ struct ResponseFail {
 
 #[get("/activity-groups")]
 pub async fn activity_index(pool: web::Data<Pool<MySql>>) -> impl Responder {
+    println!(" Jalan ");
     let pool_ref = pool.get_ref();
     let result = sqlx::query_as::<_, Activity>("select * from activities")
         .fetch_all(pool_ref)
